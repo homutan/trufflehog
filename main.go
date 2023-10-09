@@ -140,8 +140,8 @@ var (
 
 	dockerScan       = cli.Command("docker", "Scan Docker Image")
 	dockerScanImages = dockerScan.Flag("image", "Docker image to scan. Use the file:// prefix to point to a local tarball, otherwise a image registry is assumed.").Required().Strings()
-	dockerBasicUsername = dockerScan.Flag("username", "DockerHub username").Required().String()
-	dockerBasicPassword = dockerScan.Flag("password", "DockerHub password").Required().String()
+	dockerBasicUsername = dockerScan.Flag("username", "Docker Hub username").Required().String()
+	dockerBasicPassword = dockerScan.Flag("password", "Docker Hub password").Required().String()
 )
 
 func init() {
