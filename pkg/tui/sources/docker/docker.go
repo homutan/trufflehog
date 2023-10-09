@@ -38,6 +38,9 @@ func (m dockerCmdModel) Cmd() string {
 		}
 	}
 
+	command = append(command, "--username="+inputs["username"].Value)
+	command = append(command, "--password="+inputs["password"].Value)
+
 	return strings.Join(command, " ")
 }
 
