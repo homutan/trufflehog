@@ -27,6 +27,7 @@ import (
 	"github.com/trufflesecurity/trufflehog/v3/pkg/log"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/output"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/pb/sourcespb"
+	"github.com/trufflesecurity/trufflehog/v3/pkg/pb/credentialspb"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/sources"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/sources/git"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/tui"
@@ -139,6 +140,8 @@ var (
 
 	dockerScan       = cli.Command("docker", "Scan Docker Image")
 	dockerScanImages = dockerScan.Flag("image", "Docker image to scan. Use the file:// prefix to point to a local tarball, otherwise a image registry is assumed.").Required().Strings()
+	dockerBasicUsername = dockerScan.Flag("username", "DockerHub username").Required().String()
+	dockerBasicPassword = dockerScan.Flag("password", "DockerHub password").Required().String()
 )
 
 func init() {
@@ -518,8 +521,11 @@ func run(state overseer.State) {
 	case dockerScan.FullCommand():
 		dockerConn := sourcespb.Docker{
 			Images: *dockerScanImages,
-			Credential: &sourcespb.Docker_DockerKeychain{
-				DockerKeychain: true,
+			Credential: &sourcespb.Docker_BasicAuth{
+				BasicAuth: &credentialspb.BasicAuth{
+					Username: *dockerBasicUsername,
+					Password: *dockerBasicPassword,
+				},
 			},
 		}
 		anyConn, err := anypb.New(&dockerConn)
