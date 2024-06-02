@@ -20,7 +20,21 @@ func GetFields() dockerCmdModel {
 		Placeholder: "trufflesecurity/secrets",
 	}
 
-	return dockerCmdModel{textinputs.New([]textinputs.InputConfig{images})}
+	username := textinputs.InputConfig{
+		Label:       "Dockerhub username",
+		Key:         "username",
+		Required:    false,
+		Placeholder: "legenda-cooma",
+	}
+
+	password := textinputs.InputConfig{
+		Label:       "Dockerhub password",
+		Key:         "password",
+		Required:    false,
+		Placeholder: "legenda-cooma",
+	}
+
+	return dockerCmdModel{textinputs.New([]textinputs.InputConfig{images, username, password})}
 }
 
 func (m dockerCmdModel) Cmd() string {
@@ -36,6 +50,18 @@ func (m dockerCmdModel) Cmd() string {
 		for _, image := range images {
 			command = append(command, "--image="+image)
 		}
+	}
+
+	username := inputs["username"].Value
+
+	if username != "" {
+		command = append(command, "--username="+username)
+	}
+
+	password := inputs["password"].Value
+
+	if password != "" {
+		command = append(command, "--password="+password)
 	}
 
 	return strings.Join(command, " ")

@@ -152,6 +152,10 @@ type DockerConfig struct {
 	BearerToken string
 	// UseDockerKeychain determines whether to use the Docker keychain.
 	UseDockerKeychain bool
+	Username          string
+	Password          string
+	Cache             bool
+	CacheDb           string
 }
 
 // GCSConfig defines the optional configuration for a GCS source.

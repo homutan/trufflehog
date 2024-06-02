@@ -7,6 +7,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/trufflesecurity/trufflehog/v3/pkg/context"
+	"github.com/trufflesecurity/trufflehog/v3/pkg/pb/credentialspb"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/pb/sourcespb"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/sources"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/sources/docker"
@@ -14,13 +15,15 @@ import (
 
 // ScanDocker scans a given docker connection.
 func (e *Engine) ScanDocker(ctx context.Context, c sources.DockerConfig) error {
-	connection := &sourcespb.Docker{Images: c.Images}
+	connection := &sourcespb.Docker{Images: c.Images, Cache: c.Cache, CacheDb: c.CacheDb}
 
 	switch {
 	case c.UseDockerKeychain:
 		connection.Credential = &sourcespb.Docker_DockerKeychain{DockerKeychain: true}
 	case len(c.BearerToken) > 0:
 		connection.Credential = &sourcespb.Docker_BearerToken{BearerToken: c.BearerToken}
+	case len(c.Username) > 0 && len(c.Password) > 0:
+		connection.Credential = &sourcespb.Docker_BasicAuth{BasicAuth: &credentialspb.BasicAuth{Username: c.Username, Password: c.Password}}
 	default:
 		connection.Credential = &sourcespb.Docker_Unauthenticated{}
 	}

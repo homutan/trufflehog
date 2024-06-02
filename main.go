@@ -18,7 +18,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/jpillora/overseer"
 	"github.com/mattn/go-isatty"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/trufflesecurity/trufflehog/v3/pkg/cleantemp"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/common"
@@ -147,11 +146,13 @@ var (
 	circleCiScan      = cli.Command("circleci", "Scan CircleCI")
 	circleCiScanToken = circleCiScan.Flag("token", "CircleCI token. Can also be provided with environment variable").Envar("CIRCLECI_TOKEN").Required().String()
 
-	dockerScan       = cli.Command("docker", "Scan Docker Image")
-	dockerScanImages = dockerScan.Flag("image", "Docker image to scan. Use the file:// prefix to point to a local tarball, otherwise a image registry is assumed.").Required().Strings()
-	dockerCache      = dockerScan.Flag("cache", "Use layer caching. Don't re-scan a layer that has already been scanned and is in the layer caching db.").Bool()
-	dockerCacheDB    = dockerScan.Flag("cache-db", "Path to the layer caching database. Default is trufflehog_layers.sqlite3").Default("trufflehog_layers.sqlite3").String()
-	dockerScanToken  = dockerScan.Flag("token", "Docker bearer token. Can also be provided with environment variable").Envar("DOCKER_TOKEN").String()
+	dockerScan         = cli.Command("docker", "Scan Docker Image")
+	dockerScanImages   = dockerScan.Flag("image", "Docker image to scan. Use the file:// prefix to point to a local tarball, otherwise a image registry is assumed.").Required().Strings()
+	dockerCache        = dockerScan.Flag("cache", "Use layer caching. Don't re-scan a layer that has already been scanned and is in the layer caching db.").Bool()
+	dockerCacheDB      = dockerScan.Flag("cache-db", "Path to the layer caching database. Default is trufflehog_layers.sqlite3").Default("trufflehog_layers.sqlite3").String()
+	dockerScanToken    = dockerScan.Flag("token", "Docker bearer token. Can also be provided with environment variable").Envar("DOCKER_TOKEN").String()
+	dockerScanUsername = dockerScan.Flag("username", "Dockerhub username").String()
+	dockerScanPassword = dockerScan.Flag("password", "Dockerhub password").String()
 
 	travisCiScan      = cli.Command("travisci", "Scan TravisCI")
 	travisCiScanToken = travisCiScan.Flag("token", "TravisCI token. Can also be provided with environment variable").Envar("TRAVISCI_TOKEN").Required().String()
@@ -604,19 +605,19 @@ func run(state overseer.State) {
 			logFatal(err, "Failed to scan GCS.")
 		}
 	case dockerScan.FullCommand():
-		dockerConn := sourcespb.Docker{
-			Images: *dockerScanImages,
-			Credential: &sourcespb.Docker_DockerKeychain{
-				DockerKeychain: true,
-			},
-			Cache:   *dockerCache,
-			CacheDb: *dockerCacheDB,
+		cfg := sources.DockerConfig{
+			BearerToken:       *dockerScanToken,
+			Username:          *dockerScanUsername,
+			Password:          *dockerScanPassword,
+			Images:            *dockerScanImages,
+			UseDockerKeychain: *dockerScanToken == "" && *dockerScanUsername == "" && *dockerScanPassword == "",
+			Cache:             *dockerCache,
+			CacheDb:           *dockerCacheDB,
 		}
-		anyConn, err := anypb.New(&dockerConn)
 		if err != nil {
 			logFatal(err, "Failed to marshal Docker connection")
 		}
-		if err := e.ScanDocker(ctx, anyConn); err != nil {
+		if err := e.ScanDocker(ctx, cfg); err != nil {
 			logFatal(err, "Failed to scan Docker.")
 		}
 	case postmanScan.FullCommand():
