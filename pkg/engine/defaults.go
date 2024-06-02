@@ -139,6 +139,7 @@ import (
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/cloudelements"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/cloudflareapitoken"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/cloudflarecakey"
+	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/cloudflareglobalapikey"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/cloudimage"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/cloudmersive"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/cloudplan"
@@ -310,6 +311,7 @@ import (
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/graphcms"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/graphhopper"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/groovehq"
+	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/groq"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/gtmetrix"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/guardianapi"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/gumroad"
@@ -343,9 +345,9 @@ import (
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/insightly"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/instabot"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/instamojo"
-	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/integromat"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/intercom"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/interseller"
+	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/intra42"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/intrinio"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/invoiceocean"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/ip2location"
@@ -469,6 +471,7 @@ import (
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/onelogin"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/onepagecrm"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/onesignal"
+	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/onfleet"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/onwaterio"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/oopspam"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors/openai"
@@ -824,7 +827,7 @@ func DefaultDetectors() []detectors.Detector {
 		&clarifai.Scanner{},
 		&cloudflareapitoken.Scanner{},
 		&cloudflarecakey.Scanner{},
-		// &cloudflareglobalapikey.Scanner{},
+		&cloudflareglobalapikey.Scanner{},
 		&terraformcloudpersonaltoken.Scanner{},
 		&asanapersonalaccesstoken.Scanner{},
 		&trelloapikey.Scanner{},
@@ -962,7 +965,6 @@ func DefaultDetectors() []detectors.Detector {
 		&smartsheets.Scanner{},
 		// &wepay.Scanner{},
 		// &artifactory.Scanner{},
-		&integromat.Scanner{},
 		&linenotify.Scanner{},
 		&float.Scanner{},
 		&monday.Scanner{},
@@ -1601,6 +1603,9 @@ func DefaultDetectors() []detectors.Detector {
 		&jupiterone.Scanner{},
 		gcpapplicationdefaultcredentials.Scanner{},
 		wiz.Scanner{},
+		onfleet.Scanner{},
+		intra42.Scanner{},
+		groq.Scanner{},
 	}
 }
 

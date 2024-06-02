@@ -30,7 +30,6 @@ import (
 	"github.com/trufflesecurity/trufflehog/v3/pkg/handlers"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/log"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/output"
-	"github.com/trufflesecurity/trufflehog/v3/pkg/pb/sourcespb"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/sources"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/tui"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/updater"
@@ -152,23 +151,47 @@ var (
 	dockerScanImages = dockerScan.Flag("image", "Docker image to scan. Use the file:// prefix to point to a local tarball, otherwise a image registry is assumed.").Required().Strings()
 	dockerCache      = dockerScan.Flag("cache", "Use layer caching. Don't re-scan a layer that has already been scanned and is in the layer caching db.").Bool()
 	dockerCacheDB    = dockerScan.Flag("cache-db", "Path to the layer caching database. Default is trufflehog_layers.sqlite3").Default("trufflehog_layers.sqlite3").String()
+	dockerScanToken  = dockerScan.Flag("token", "Docker bearer token. Can also be provided with environment variable").Envar("DOCKER_TOKEN").String()
 
 	travisCiScan      = cli.Command("travisci", "Scan TravisCI")
 	travisCiScanToken = travisCiScan.Flag("token", "TravisCI token. Can also be provided with environment variable").Envar("TRAVISCI_TOKEN").Required().String()
 
 	// Postman is hidden for now until we get more feedback from the community.
-	postmanScan                = cli.Command("postman", "Scan Postman")
-	postmanToken               = postmanScan.Flag("token", "Postman token. Can also be provided with environment variable").Envar("POSTMAN_TOKEN").String()
-	postmanWorkspaces          = postmanScan.Flag("workspace", "Postman workspace to scan. You can repeat this flag.").Strings()
-	postmanCollections         = postmanScan.Flag("collection", "Postman collection to scan. You can repeat this flag.").Strings()
-	postmanEnvironments        = postmanScan.Flag("environment", "Postman environment to scan. You can repeat this flag.").Strings()
-	postmanIncludeCollections  = postmanScan.Flag("include-collections", "Collections to include in scan. You can repeat this flag.").Strings()
+	postmanScan  = cli.Command("postman", "Scan Postman")
+	postmanToken = postmanScan.Flag("token", "Postman token. Can also be provided with environment variable").Envar("POSTMAN_TOKEN").String()
+
+	postmanWorkspaces   = postmanScan.Flag("workspace", "Postman workspace to scan. You can repeat this flag. Deprecated flag.").Hidden().Strings()
+	postmanWorkspaceIDs = postmanScan.Flag("workspace-id", "Postman workspace ID to scan. You can repeat this flag.").Strings()
+
+	postmanCollections   = postmanScan.Flag("collection", "Postman collection to scan. You can repeat this flag. Deprecated flag.").Hidden().Strings()
+	postmanCollectionIDs = postmanScan.Flag("collection-id", "Postman collection ID to scan. You can repeat this flag.").Strings()
+
+	postmanEnvironments = postmanScan.Flag("environment", "Postman environment to scan. You can repeat this flag.").Strings()
+
+	postmanIncludeCollections   = postmanScan.Flag("include-collections", "Collections to include in scan. You can repeat this flag. Deprecated flag.").Hidden().Strings()
+	postmanIncludeCollectionIDs = postmanScan.Flag("include-collection-id", "Collection ID to include in scan. You can repeat this flag.").Strings()
+
 	postmanIncludeEnvironments = postmanScan.Flag("include-environments", "Environments to include in scan. You can repeat this flag.").Strings()
-	postmanExcludeCollections  = postmanScan.Flag("exclude-collections", "Collections to exclude from scan. You can repeat this flag.").Strings()
+
+	postmanExcludeCollections   = postmanScan.Flag("exclude-collections", "Collections to exclude from scan. You can repeat this flag. Deprecated flag.").Hidden().Strings()
+	postmanExcludeCollectionIDs = postmanScan.Flag("exclude-collection-id", "Collection ID to exclude from scan. You can repeat this flag.").Strings()
+
 	postmanExcludeEnvironments = postmanScan.Flag("exclude-environments", "Environments to exclude from scan. You can repeat this flag.").Strings()
 	postmanWorkspacePaths      = postmanScan.Flag("workspace-paths", "Path to Postman workspaces.").Strings()
 	postmanCollectionPaths     = postmanScan.Flag("collection-paths", "Path to Postman collections.").Strings()
 	postmanEnvironmentPaths    = postmanScan.Flag("environment-paths", "Path to Postman environments.").Strings()
+
+	elasticsearchScan           = cli.Command("elasticsearch", "Scan Elasticsearch")
+	elasticsearchNodes          = elasticsearchScan.Flag("nodes", "Elasticsearch nodes").Envar("ELASTICSEARCH_NODES").Strings()
+	elasticsearchUsername       = elasticsearchScan.Flag("username", "Elasticsearch username").Envar("ELASTICSEARCH_USERNAME").String()
+	elasticsearchPassword       = elasticsearchScan.Flag("password", "Elasticsearch password").Envar("ELASTICSEARCH_PASSWORD").String()
+	elasticsearchServiceToken   = elasticsearchScan.Flag("service-token", "Elasticsearch service token").Envar("ELASTICSEARCH_SERVICE_TOKEN").String()
+	elasticsearchCloudId        = elasticsearchScan.Flag("cloud-id", "Elasticsearch cloud ID. Can also be provided with environment variable").Envar("ELASTICSEARCH_CLOUD_ID").String()
+	elasticsearchAPIKey         = elasticsearchScan.Flag("api-key", "Elasticsearch API key. Can also be provided with environment variable").Envar("ELASTICSEARCH_API_KEY").String()
+	elasticsearchIndexPattern   = elasticsearchScan.Flag("index-pattern", "Filters the indices to search").Default("*").Envar("ELASTICSEARCH_INDEX_PATTERN").String()
+	elasticsearchQueryJSON      = elasticsearchScan.Flag("query-json", "Filters the documents to search").Envar("ELASTICSEARCH_QUERY_JSON").String()
+	elasticsearchSinceTimestamp = elasticsearchScan.Flag("since-timestamp", "Filters the documents to search to those created since this timestamp; overrides any timestamp from --query-json").Envar("ELASTICSEARCH_SINCE_TIMESTAMP").String()
+	elasticsearchBestEffortScan = elasticsearchScan.Flag("best-effort-scan", "Attempts to continuously scan a cluster").Envar("ELASTICSEARCH_BEST_EFFORT_SCAN").Bool()
 )
 
 func init() {
@@ -344,13 +367,13 @@ func run(state overseer.State) {
 	// Verify that all the user-provided detectors support the optional
 	// detector features.
 	{
-		if err, id := verifyDetectorsAreVersioner(includeDetectorSet); err != nil {
+		if id, err := verifyDetectorsAreVersioner(includeDetectorSet); err != nil {
 			logFatal(err, "invalid include list detector configuration", "detector", id)
 		}
-		if err, id := verifyDetectorsAreVersioner(excludeDetectorSet); err != nil {
+		if id, err := verifyDetectorsAreVersioner(excludeDetectorSet); err != nil {
 			logFatal(err, "invalid exclude list detector configuration", "detector", id)
 		}
-		if err, id := verifyDetectorsAreVersioner(detectorsWithCustomVerifierEndpoints); err != nil {
+		if id, err := verifyDetectorsAreVersioner(detectorsWithCustomVerifierEndpoints); err != nil {
 			logFatal(err, "invalid verifier detector configuration", "detector", id)
 		}
 		// Extra check for endpoint customization.
@@ -597,14 +620,34 @@ func run(state overseer.State) {
 			logFatal(err, "Failed to scan Docker.")
 		}
 	case postmanScan.FullCommand():
+		// handle deprecated flag
+		workspaceIDs := make([]string, 0, len(*postmanWorkspaceIDs)+len(*postmanWorkspaces))
+		workspaceIDs = append(workspaceIDs, *postmanWorkspaceIDs...)
+		workspaceIDs = append(workspaceIDs, *postmanWorkspaces...)
+
+		// handle deprecated flag
+		collectionIDs := make([]string, 0, len(*postmanCollectionIDs)+len(*postmanCollections))
+		collectionIDs = append(collectionIDs, *postmanCollectionIDs...)
+		collectionIDs = append(collectionIDs, *postmanCollections...)
+
+		// handle deprecated flag
+		includeCollectionIDs := make([]string, 0, len(*postmanIncludeCollectionIDs)+len(*postmanIncludeCollections))
+		includeCollectionIDs = append(includeCollectionIDs, *postmanIncludeCollectionIDs...)
+		includeCollectionIDs = append(includeCollectionIDs, *postmanIncludeCollections...)
+
+		// handle deprecated flag
+		excludeCollectionIDs := make([]string, 0, len(*postmanExcludeCollectionIDs)+len(*postmanExcludeCollections))
+		excludeCollectionIDs = append(excludeCollectionIDs, *postmanExcludeCollectionIDs...)
+		excludeCollectionIDs = append(excludeCollectionIDs, *postmanExcludeCollections...)
+
 		cfg := sources.PostmanConfig{
 			Token:               *postmanToken,
-			Workspaces:          *postmanWorkspaces,
-			Collections:         *postmanCollections,
+			Workspaces:          workspaceIDs,
+			Collections:         collectionIDs,
 			Environments:        *postmanEnvironments,
-			IncludeCollections:  *postmanIncludeCollections,
+			IncludeCollections:  includeCollectionIDs,
 			IncludeEnvironments: *postmanIncludeEnvironments,
-			ExcludeCollections:  *postmanExcludeCollections,
+			ExcludeCollections:  excludeCollectionIDs,
 			ExcludeEnvironments: *postmanExcludeEnvironments,
 			CollectionPaths:     *postmanCollectionPaths,
 			WorkspacePaths:      *postmanWorkspacePaths,
@@ -613,6 +656,24 @@ func run(state overseer.State) {
 		if err := e.ScanPostman(ctx, cfg); err != nil {
 			logFatal(err, "Failed to scan Postman.")
 		}
+	case elasticsearchScan.FullCommand():
+		cfg := sources.ElasticsearchConfig{
+			Nodes:          *elasticsearchNodes,
+			Username:       *elasticsearchUsername,
+			Password:       *elasticsearchPassword,
+			CloudID:        *elasticsearchCloudId,
+			APIKey:         *elasticsearchAPIKey,
+			ServiceToken:   *elasticsearchServiceToken,
+			IndexPattern:   *elasticsearchIndexPattern,
+			QueryJSON:      *elasticsearchQueryJSON,
+			SinceTimestamp: *elasticsearchSinceTimestamp,
+			BestEffortScan: *elasticsearchBestEffortScan,
+		}
+		if err := e.ScanElasticsearch(ctx, cfg); err != nil {
+			logFatal(err, "Failed to scan Elasticsearch.")
+		}
+	default:
+		logFatal(fmt.Errorf("invalid command"), "Command not recognized.")
 	}
 
 	// Wait for all workers to finish.
@@ -631,6 +692,7 @@ func run(state overseer.State) {
 		"verified_secrets", metrics.VerifiedSecretsFound,
 		"unverified_secrets", metrics.UnverifiedSecretsFound,
 		"scan_duration", metrics.ScanDuration.String(),
+		"trufflehog_version", version.BuildVersion,
 	)
 
 	if *printAvgDetectorTime {
@@ -658,10 +720,10 @@ func parseResults(input *string) (map[string]struct{}, error) {
 	)
 	for _, value := range values {
 		switch value {
-		case "verified", "unknown", "unverified":
+		case "verified", "unknown", "unverified", "filtered_unverified":
 			results[value] = struct{}{}
 		default:
-			return nil, fmt.Errorf("invalid value '%s', valid values are 'verified,unknown,unverified'", value)
+			return nil, fmt.Errorf("invalid value '%s', valid values are 'verified,unknown,unverified,filtered_unverified'", value)
 		}
 	}
 	return results, nil
@@ -695,7 +757,10 @@ func commaSeparatedToSlice(s []string) []string {
 }
 
 func printAverageDetectorTime(e *engine.Engine) {
-	fmt.Fprintln(os.Stderr, "Average detector time is the measurement of average time spent on each detector when results are returned.")
+	fmt.Fprintln(
+		os.Stderr,
+		"Average detector time is the measurement of average time spent on each detector when results are returned.",
+	)
 	for detectorName, duration := range e.GetDetectorsMetrics() {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", detectorName, duration)
 	}
@@ -728,7 +793,7 @@ func getWithDetectorID[T any](d detectors.Detector, data map[config.DetectorID]T
 
 // verifyDetectorsAreVersioner checks all keys in a provided map to verify the
 // provided type is actually a Versioner.
-func verifyDetectorsAreVersioner[T any](data map[config.DetectorID]T) (error, config.DetectorID) {
+func verifyDetectorsAreVersioner[T any](data map[config.DetectorID]T) (config.DetectorID, error) {
 	isVersioner := engine.DefaultDetectorTypesImplementing[detectors.Versioner]()
 	for id := range data {
 		if id.Version == 0 {
@@ -740,7 +805,7 @@ func verifyDetectorsAreVersioner[T any](data map[config.DetectorID]T) (error, co
 			continue
 		}
 		// Version provided on a non-Versioner detector.
-		return fmt.Errorf("version provided but detector does not have a version"), id
+		return id, fmt.Errorf("version provided but detector does not have a version")
 	}
-	return nil, config.DetectorID{}
+	return config.DetectorID{}, nil
 }
