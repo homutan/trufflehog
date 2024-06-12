@@ -146,13 +146,15 @@ var (
 	circleCiScan      = cli.Command("circleci", "Scan CircleCI")
 	circleCiScanToken = circleCiScan.Flag("token", "CircleCI token. Can also be provided with environment variable").Envar("CIRCLECI_TOKEN").Required().String()
 
-	dockerScan         = cli.Command("docker", "Scan Docker Image")
-	dockerScanImages   = dockerScan.Flag("image", "Docker image to scan. Use the file:// prefix to point to a local tarball, otherwise a image registry is assumed.").Required().Strings()
-	dockerCache        = dockerScan.Flag("cache", "Use layer caching. Don't re-scan a layer that has already been scanned and is in the layer caching db.").Bool()
-	dockerCacheDB      = dockerScan.Flag("cache-db", "Path to the layer caching database. Default is trufflehog_layers.sqlite3").Default("trufflehog_layers.sqlite3").String()
-	dockerScanToken    = dockerScan.Flag("token", "Docker bearer token. Can also be provided with environment variable").Envar("DOCKER_TOKEN").String()
-	dockerScanUsername = dockerScan.Flag("username", "Dockerhub username").String()
-	dockerScanPassword = dockerScan.Flag("password", "Dockerhub password").String()
+	dockerScan          = cli.Command("docker", "Scan Docker Image")
+	dockerScanImages    = dockerScan.Flag("image", "Docker image to scan. Use the file:// prefix to point to a local tarball, otherwise a image registry is assumed.").Required().Strings()
+	dockerCache         = dockerScan.Flag("cache", "Use layer caching. Don't re-scan a layer that has already been scanned and is in the layer caching db.").Bool()
+	dockerCacheDB       = dockerScan.Flag("cache-db", "Path to the layer caching database. Default is trufflehog_layers.sqlite3").Default("trufflehog_layers.sqlite3").String()
+	dockerScanToken     = dockerScan.Flag("token", "Docker bearer token. Can also be provided with environment variable").Envar("DOCKER_TOKEN").String()
+	dockerScanUsername  = dockerScan.Flag("username", "Dockerhub username").String()
+	dockerScanPassword  = dockerScan.Flag("password", "Dockerhub password").String()
+	dockerLocalCache    = dockerScan.Flag("cache-local", "Use docker layers caching. https://pkg.go.dev/github.com/google/go-containerregistry/pkg/v1/cache").Bool()
+	dockerLocalCacheDir = dockerScan.Flag("cache-local-dir", "Path to the docker registry cache. Default is ./docker-cache").Default("./docker-cache").String()
 
 	travisCiScan      = cli.Command("travisci", "Scan TravisCI")
 	travisCiScanToken = travisCiScan.Flag("token", "TravisCI token. Can also be provided with environment variable").Envar("TRAVISCI_TOKEN").Required().String()
@@ -613,6 +615,8 @@ func run(state overseer.State) {
 			UseDockerKeychain: *dockerScanToken == "" && *dockerScanUsername == "" && *dockerScanPassword == "",
 			Cache:             *dockerCache,
 			CacheDb:           *dockerCacheDB,
+			LocalCache:        *dockerLocalCache,
+			LocalCacheDir:     *dockerLocalCacheDir,
 		}
 		if err != nil {
 			logFatal(err, "Failed to marshal Docker connection")

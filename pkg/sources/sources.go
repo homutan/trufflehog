@@ -156,6 +156,8 @@ type DockerConfig struct {
 	Password          string
 	Cache             bool
 	CacheDb           string
+	LocalCache        bool
+	LocalCacheDir     string
 }
 
 // GCSConfig defines the optional configuration for a GCS source.

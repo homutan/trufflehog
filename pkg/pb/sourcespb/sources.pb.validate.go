@@ -1333,6 +1333,10 @@ func (m *Docker) validate(all bool) error {
 
 	// no validation rules for CacheDb
 
+	// no validation rules for LocalCache
+
+	// no validation rules for LocalCacheDir
+
 	switch v := m.Credential.(type) {
 	case *Docker_Unauthenticated:
 		if v == nil {

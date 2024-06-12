@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/cache"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"golang.org/x/sync/errgroup"
@@ -209,6 +210,12 @@ func (s *Source) processImage(ctx context.Context, image string) (imageInfo, err
 		}
 
 		imgInfo.image, err = remote.Image(imageName, remoteOpts...)
+
+		if s.conn.LocalCache {
+			fs := cache.NewFilesystemCache(s.conn.GetLocalCacheDir())
+			imgInfo.image = cache.Image(imgInfo.image, fs)
+		}
+
 		if err != nil {
 			return imgInfo, err
 		}

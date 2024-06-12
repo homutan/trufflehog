@@ -753,6 +753,7 @@ func TestDockerScanWithCacheNoSecrets(t *testing.T) {
 	wg.Wait()
 
 	assert.Equal(t, 0, chunkCounter)
+}
 func isHistoryChunk(t *testing.T, chunk *sources.Chunk) bool {
 	t.Helper()
 

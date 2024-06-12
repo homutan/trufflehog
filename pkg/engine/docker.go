@@ -15,7 +15,7 @@ import (
 
 // ScanDocker scans a given docker connection.
 func (e *Engine) ScanDocker(ctx context.Context, c sources.DockerConfig) error {
-	connection := &sourcespb.Docker{Images: c.Images, Cache: c.Cache, CacheDb: c.CacheDb}
+	connection := &sourcespb.Docker{Images: c.Images, Cache: c.Cache, CacheDb: c.CacheDb, LocalCache: c.LocalCache, LocalCacheDir: c.LocalCacheDir}
 
 	switch {
 	case c.UseDockerKeychain:
