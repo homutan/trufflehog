@@ -73,8 +73,8 @@ func (s *Source) Init(ctx context.Context, name string, jobId sources.JobID, sou
 	}
 
 	// If using layer caching, initialize the database.
-	if s.conn.Cache {
-		db, err := ConnectToLayersDB(s.conn.CacheDb)
+	if s.conn.GetCache() {
+		db, err := ConnectToLayersDB(s.conn.GetCacheDb())
 		if err != nil {
 			return fmt.Errorf("error connecting to layer cache database: %w", err)
 		}
@@ -211,7 +211,7 @@ func (s *Source) processImage(ctx context.Context, image string) (imageInfo, err
 
 		imgInfo.image, err = remote.Image(imageName, remoteOpts...)
 
-		if s.conn.LocalCache {
+		if s.conn.GetLocalCache() {
 			fs := cache.NewFilesystemCache(s.conn.GetLocalCacheDir())
 			imgInfo.image = cache.Image(imgInfo.image, fs)
 		}
@@ -320,8 +320,8 @@ func (s *Source) processLayer(ctx context.Context, layer v1.Layer, imgInfo image
 	}
 
 	// If using layer caching, check if layer already scanned. If no secrets found before, skip.
-	if s.conn.Cache {
-		db, err := ConnectToLayersDB(s.conn.CacheDb)
+	if s.conn.GetCache() {
+		db, err := ConnectToLayersDB(s.conn.GetCacheDb())
 		if err != nil {
 			return fmt.Errorf("error connecting to layer cache database: %w", err)
 		}
@@ -370,8 +370,8 @@ func (s *Source) processLayer(ctx context.Context, layer v1.Layer, imgInfo image
 	}
 
 	// If using layer caching, update layer cache db that layer has been scanned.
-	if s.conn.Cache {
-		db, err := ConnectToLayersDB(s.conn.CacheDb)
+	if s.conn.GetCache() {
+		db, err := ConnectToLayersDB(s.conn.GetCacheDb())
 		if err != nil {
 			return fmt.Errorf("error connecting to layer cache database: %w", err)
 		}
@@ -456,7 +456,7 @@ func (s *Source) remoteOpts() ([]remote.Option, error) {
 			remote.WithAuthFromKeychain(authn.DefaultKeychain),
 		}, nil
 	default:
-		return nil, fmt.Errorf("unknown credential type: %T", s.conn.Credential)
+		return nil, fmt.Errorf("unknown credential type: %T", s.conn.GetCredential())
 	}
 }
 
